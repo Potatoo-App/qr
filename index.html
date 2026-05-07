@@ -1,1007 +1,1009 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Potatoo Menu</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --gold-1: #FFCC44;
-      --gold-2: #E08A00;
-      --bg-dark: #111111;
-      --bg-card: #1A1A1A;
-      --bg-item: #2B2B2B;
-      --border: #3A3A3A;
-      --text-main: #FFFFFF;
-      --text-sub: rgba(255,255,255,0.65);
-      --gold-grad: linear-gradient(180deg, #FFCC44 0%, #E08A00 100%);
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: var(--bg-dark); color: var(--text-main); font-family: 'Cairo', sans-serif; min-height: 100vh; }
-
-    /* ===== LOADER ===== */
-    #loader {
-      position: fixed; inset: 0; background: var(--bg-dark);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 999; transition: opacity 0.4s ease;
-    }
-    #loader.hide { opacity: 0; pointer-events: none; }
-    .loader-logo {
-      width: 80px; height: 80px; border-radius: 20px; background: var(--gold-grad);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 36px; margin-bottom: 20px; animation: pulse 1.2s ease-in-out infinite;
-    }
-    @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
-    .loader-text { font-size: 15px; color: var(--text-sub); font-weight: 700; margin-bottom: 16px; }
-    .loader-spinner {
-      width: 32px; height: 32px; border: 3px solid var(--border);
-      border-top-color: var(--gold-1); border-radius: 50%; animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ===== ERROR ===== */
-    #error-state {
-      display: none; flex-direction: column; align-items: center;
-      justify-content: center; min-height: 100vh; padding: 32px; text-align: center;
-    }
-    #error-state .err-icon { font-size: 56px; margin-bottom: 16px; }
-    #error-state h2 { font-size: 22px; font-weight: 900; margin-bottom: 8px; }
-    #error-state p { color: var(--text-sub); font-size: 14px; }
-
-    #main { display: none; }
-
-    /* ===== HEADER ===== */
-    #header { position: relative; overflow: hidden; }
-    .header-cover { width: 100%; height: 220px; object-fit: cover; object-position: center; display: block; }
-    .header-overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.5) 60%, #111111 100%);
-    }
-    .header-content {
-      position: relative; z-index: 2; margin-top: -100px;
-      padding: 0 20px 20px; display: flex; flex-direction: column; align-items: center; text-align: center;
-    }
-    .branch-logo {
-      width: 88px; height: 88px; border-radius: 22px; object-fit: cover;
-      border: 3px solid var(--gold-1); margin-bottom: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    }
-    .branch-logo-placeholder {
-      width: 88px; height: 88px; border-radius: 22px; background: var(--gold-grad);
-      margin-bottom: 14px; display: flex; align-items: center; justify-content: center;
-      font-size: 40px; border: 3px solid var(--gold-1);
-    }
-    .branch-name-main {
-      font-size: 28px; font-weight: 900; line-height: 1.2;
-      background: var(--gold-grad); -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .branch-name-sub { font-size: 14px; font-weight: 700; color: var(--text-sub); margin-top: 4px; }
-
-    /* ===== TOP ACTIONS (cart + app banner) ===== */
-    .top-actions {
-      display: flex; align-items: center; gap: 10px;
-      padding: 0 14px 14px;
-    }
-    #app-banner {
-      flex: 1; padding: 10px 14px; background: var(--bg-card);
-      border: 1px solid var(--gold-2); border-radius: 14px;
-      display: none; align-items: center; gap: 10px; cursor: pointer;
-    }
-    #app-banner .b-icon {
-      width: 36px; height: 36px; border-radius: 10px; background: var(--gold-grad);
-      display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
-    }
-    #app-banner .b-text { flex: 1; }
-    #app-banner .b-text strong { display: block; font-size: 12px; font-weight: 900; }
-    #app-banner .b-text span { font-size: 10px; color: var(--text-sub); }
-    #app-banner .b-arrow { color: var(--gold-1); font-size: 14px; }
-
-    /* ===== CART BUTTON ===== */
-    #cart-btn {
-      position: relative; width: 52px; height: 52px; border-radius: 16px; flex-shrink: 0;
-      background: var(--gold-grad); border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; font-size: 24px;
-      box-shadow: 0 4px 16px rgba(224,138,0,0.4);
-      transition: transform 0.15s;
-    }
-    #cart-btn:active { transform: scale(0.94); }
-    #cart-badge {
-      position: absolute; top: -6px; right: -6px;
-      background: #FF3B30; color: #fff; border-radius: 50%;
-      width: 22px; height: 22px; font-size: 12px; font-weight: 900;
-      display: none; align-items: center; justify-content: center;
-      border: 2px solid var(--bg-dark);
-    }
-    #cart-badge.show { display: flex; }
-
-    /* ===== LANG ===== */
-    .lang-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 14px; }
-    .lang-btn {
-      padding: 5px 18px; border-radius: 20px; border: none;
-      font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 12px;
-      cursor: pointer; transition: all 0.2s; background: var(--bg-item); color: var(--text-sub);
-    }
-    .lang-btn.active { background: var(--gold-grad); color: #000; }
-
-    /* ===== TABS ===== */
-    #tabs-wrapper {
-      position: sticky; top: 0; z-index: 10;
-      background: var(--bg-card); padding: 8px 0; border-bottom: 1px solid var(--border);
-    }
-    #tabs { display: flex; gap: 8px; overflow-x: auto; padding: 0 12px; scrollbar-width: none; }
-    #tabs::-webkit-scrollbar { display: none; }
-    .tab-btn {
-      flex-shrink: 0; padding: 6px 16px; border-radius: 20px; border: none;
-      font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 900;
-      cursor: pointer; transition: all 0.2s; background: var(--bg-item); color: var(--text-main); white-space: nowrap;
-    }
-    .tab-btn.active { background: var(--gold-grad); color: #000; }
-
-    /* ===== CONTENT ===== */
-    #content { padding: 12px 14px 140px; }
-    .section-title { font-size: 22px; font-weight: 900; padding: 14px 0 10px; }
-
-    /* ===== ITEM CARD ===== */
-    .item-card {
-      background: var(--bg-item); border: 1px solid var(--border);
-      border-radius: 16px; padding: 12px; margin-bottom: 10px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.35);
-    }
-    .item-inner { display: flex; gap: 10px; align-items: flex-start; }
-    .item-info { flex: 1; min-width: 0; }
-    .item-name { font-size: 16px; font-weight: 900; margin-bottom: 4px; }
-    .item-desc { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
-    .item-img { width: 86px; height: 86px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
-    .price-box {
-      display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
-      background: #000; border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 10px; padding: 5px 10px; margin-top: 8px;
-    }
-    .currency {
-      font-size: 12px; font-weight: 900; background: var(--gold-grad);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .price-item { display: flex; align-items: center; gap: 3px; }
-    .size-label { font-size: 11px; font-weight: 700; }
-    .price-val {
-      font-size: 13px; font-weight: 900; background: var(--gold-grad);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .price-sep { color: var(--border); font-size: 11px; margin: 0 2px; }
-
-    /* ===== ADD TO CART ROW ===== */
-    .add-row {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-top: 10px; gap: 8px;
-    }
-    .size-select {
-      flex: 1; background: #000; border: 1px solid var(--border);
-      border-radius: 10px; color: var(--text-main);
-      font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 700;
-      padding: 6px 10px; appearance: none; cursor: pointer;
-    }
-    .add-btn {
-      height: 38px; padding: 0 16px; border-radius: 12px; border: none;
-      background: var(--gold-grad); color: #000;
-      font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900;
-      cursor: pointer; white-space: nowrap; flex-shrink: 0;
-      transition: transform 0.15s;
-    }
-    .add-btn:active { transform: scale(0.94); }
-
-    /* ===== BOTTOM BAR ===== */
-    #bottom-bar {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: var(--bg-card); padding: 8px 14px 20px;
-      z-index: 20; border-top: 1px solid var(--border);
-    }
-    .bottom-inner { background: #222; border-radius: 16px; padding: 8px; display: flex; gap: 10px; align-items: center; }
-    .action-btn-main {
-      flex: 1; height: 48px; border-radius: 14px; border: none; background: var(--gold-grad); color: #000;
-      font-family: 'Cairo', sans-serif; font-size: 16px; font-weight: 900;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
-    }
-    .action-btn-icon {
-      width: 48px; height: 48px; border-radius: 14px; border: 2px solid var(--gold-1); background: var(--bg-dark);
-      display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; text-decoration: none; flex-shrink: 0;
-    }
-    .btn-hidden { display: none !important; }
-
-    /* ===== CART SHEET ===== */
-    .sheet-overlay {
-      position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.7);
-      display: flex; flex-direction: column; justify-content: flex-end;
-      animation: overlayIn 0.25s ease;
-    }
-    @keyframes overlayIn { from{opacity:0;} to{opacity:1;} }
-    .sheet-box {
-      background: var(--bg-card); border-radius: 24px 24px 0 0;
-      max-height: 92vh; display: flex; flex-direction: column;
-      animation: sheetUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    }
-    @keyframes sheetUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
-    .sheet-handle {
-      width: 40px; height: 4px; border-radius: 2px;
-      background: linear-gradient(90deg,#FFCC44,#E08A00);
-      margin: 14px auto 0;
-    }
-    .sheet-title {
-      font-size: 20px; font-weight: 900; padding: 14px 20px 10px;
-      background: var(--gold-grad); -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .sheet-scroll { overflow-y: auto; padding: 0 16px; flex: 1; }
-    .sheet-footer { padding: 12px 16px 28px; border-top: 1px solid var(--border); }
-
-    /* ===== CART ITEM ROW ===== */
-    .cart-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 0; border-bottom: 1px solid var(--border);
-    }
-    .cart-item-info { flex: 1; min-width: 0; }
-    .cart-item-name { font-size: 14px; font-weight: 900; }
-    .cart-item-size { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
-    .cart-item-price {
-      font-size: 13px; font-weight: 900; background: var(--gold-grad);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .qty-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-    .qty-btn {
-      width: 28px; height: 28px; border-radius: 8px; border: none;
-      background: var(--bg-item); color: var(--text-main);
-      font-size: 18px; font-weight: 900; cursor: pointer; display: flex;
-      align-items: center; justify-content: center; line-height: 1;
-    }
-    .qty-btn.minus { color: #FF3B30; }
-    .qty-num { font-size: 15px; font-weight: 900; min-width: 20px; text-align: center; }
-
-    /* ===== ORDER FORM ===== */
-    .form-label { font-size: 12px; color: var(--text-sub); font-weight: 700; margin-bottom: 4px; display: block; }
-    .form-input {
-      width: 100%; background: var(--bg-item); border: 1px solid var(--border);
-      border-radius: 12px; color: var(--text-main); font-family: 'Cairo', sans-serif;
-      font-size: 14px; padding: 10px 14px; margin-bottom: 10px;
-      outline: none; transition: border-color 0.2s;
-    }
-    .form-input:focus { border-color: var(--gold-1); }
-    .form-input::placeholder { color: rgba(255,255,255,0.3); }
-
-    .total-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 0 14px; font-size: 15px; font-weight: 900;
-    }
-    .total-val {
-      font-size: 18px; font-weight: 900; background: var(--gold-grad);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-
-    .send-btn {
-      width: 100%; height: 52px; border-radius: 16px; border: none;
-      background: var(--gold-grad); color: #000;
-      font-family: 'Cairo', sans-serif; font-size: 17px; font-weight: 900;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
-      box-shadow: 0 4px 20px rgba(224,138,0,0.35);
-    }
-    .send-btn:active { transform: scale(0.98); }
-    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .empty-cart {
-      text-align: center; padding: 40px 0;
-      font-size: 14px; color: var(--text-sub); font-weight: 700;
-    }
-    .empty-cart .empty-icon { font-size: 48px; margin-bottom: 12px; }
-  </style>
-</head>
-<body>
-
-<!-- LOADER -->
-<div id="loader">
-  <div class="loader-logo">🥔</div>
-  <div class="loader-text" id="loader-text">جاري فتح التطبيق...</div>
-  <div class="loader-spinner"></div>
-</div>
-
-<!-- ERROR -->
-<div id="error-state">
-  <div class="err-icon">😕</div>
-  <h2 id="err-title">المنيو غير موجود</h2>
-  <p id="err-msg">تعذر تحميل بيانات المطعم.</p>
-</div>
-
-<!-- MAIN -->
-<div id="main">
-  <!-- HEADER -->
-  <div id="header">
-    <img class="header-cover" src="" id="header-cover" onerror="this.style.display='none'" alt="" />
-    <div class="header-overlay"></div>
-    <div class="header-content">
-      <div id="branch-logo-wrap"></div>
-      <div class="branch-name-main" id="branch-name-main"></div>
-      <div class="branch-name-sub" id="branch-name-sub"></div>
-    </div>
+  <!DOCTYPE html>
+  <html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Potatoo Menu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --gold-1: #FFCC44;
+        --gold-2: #E08A00;
+        --bg-dark: #111111;
+        --bg-card: #1A1A1A;
+        --bg-item: #2B2B2B;
+        --border: #3A3A3A;
+        --text-main: #FFFFFF;
+        --text-sub: rgba(255,255,255,0.65);
+        --gold-grad: linear-gradient(180deg, #FFCC44 0%, #E08A00 100%);
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: var(--bg-dark); color: var(--text-main); font-family: 'Cairo', sans-serif; min-height: 100vh; }
+  
+      /* ===== LOADER ===== */
+      #loader {
+        position: fixed; inset: 0; background: var(--bg-dark);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        z-index: 999; transition: opacity 0.4s ease;
+      }
+      #loader.hide { opacity: 0; pointer-events: none; }
+      .loader-logo {
+        width: 80px; height: 80px; border-radius: 20px; background: var(--gold-grad);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 36px; margin-bottom: 20px; animation: pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+      .loader-text { font-size: 15px; color: var(--text-sub); font-weight: 700; margin-bottom: 16px; }
+      .loader-spinner {
+        width: 32px; height: 32px; border: 3px solid var(--border);
+        border-top-color: var(--gold-1); border-radius: 50%; animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+  
+      /* ===== ERROR ===== */
+      #error-state {
+        display: none; flex-direction: column; align-items: center;
+        justify-content: center; min-height: 100vh; padding: 32px; text-align: center;
+      }
+      #error-state .err-icon { font-size: 56px; margin-bottom: 16px; }
+      #error-state h2 { font-size: 22px; font-weight: 900; margin-bottom: 8px; }
+      #error-state p { color: var(--text-sub); font-size: 14px; }
+  
+      #main { display: none; }
+  
+      /* ===== HEADER ===== */
+      #header { position: relative; overflow: hidden; }
+      .header-cover { width: 100%; height: 220px; object-fit: cover; object-position: center; display: block; }
+      .header-overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.5) 60%, #111111 100%);
+      }
+      .header-content {
+        position: relative; z-index: 2; margin-top: -100px;
+        padding: 0 20px 20px; display: flex; flex-direction: column; align-items: center; text-align: center;
+      }
+      .branch-logo {
+        width: 88px; height: 88px; border-radius: 22px; object-fit: cover;
+        border: 3px solid var(--gold-1); margin-bottom: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      }
+      .branch-logo-placeholder {
+        width: 88px; height: 88px; border-radius: 22px; background: var(--gold-grad);
+        margin-bottom: 14px; display: flex; align-items: center; justify-content: center;
+        font-size: 40px; border: 3px solid var(--gold-1);
+      }
+      .branch-name-main {
+        font-size: 28px; font-weight: 900; line-height: 1.2;
+        background: var(--gold-grad); -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent; background-clip: text;
+      }
+      .branch-name-sub { font-size: 14px; font-weight: 700; color: var(--text-sub); margin-top: 4px; }
+  
+      /* ===== TOP ACTIONS (cart + app banner) ===== */
+      .top-actions {
+        display: flex; align-items: center; gap: 10px;
+        padding: 0 14px 14px;
+      }
+      #app-banner {
+        flex: 1; padding: 10px 14px; background: var(--bg-card);
+        border: 1px solid var(--gold-2); border-radius: 14px;
+        display: none; align-items: center; gap: 10px; cursor: pointer;
+      }
+      #app-banner .b-icon {
+        width: 36px; height: 36px; border-radius: 10px; background: var(--gold-grad);
+        display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+      }
+      #app-banner .b-text { flex: 1; }
+      #app-banner .b-text strong { display: block; font-size: 12px; font-weight: 900; }
+      #app-banner .b-text span { font-size: 10px; color: var(--text-sub); }
+      #app-banner .b-arrow { color: var(--gold-1); font-size: 14px; }
+  
+      /* ===== CART BUTTON ===== */
+      #cart-btn {
+        position: relative; width: 52px; height: 52px; border-radius: 16px; flex-shrink: 0;
+        background: var(--gold-grad); border: none; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; font-size: 24px;
+        box-shadow: 0 4px 16px rgba(224,138,0,0.4);
+        transition: transform 0.15s;
+      }
+      #cart-btn:active { transform: scale(0.94); }
+      #cart-badge {
+        position: absolute; top: -6px; right: -6px;
+        background: #FF3B30; color: #fff; border-radius: 50%;
+        width: 22px; height: 22px; font-size: 12px; font-weight: 900;
+        display: none; align-items: center; justify-content: center;
+        border: 2px solid var(--bg-dark);
+      }
+      #cart-badge.show { display: flex; }
+  
+      /* ===== LANG ===== */
+      .lang-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 14px; }
+      .lang-btn {
+        padding: 5px 18px; border-radius: 20px; border: none;
+        font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 12px;
+        cursor: pointer; transition: all 0.2s; background: var(--bg-item); color: var(--text-sub);
+      }
+      .lang-btn.active { background: var(--gold-grad); color: #000; }
+  
+      /* ===== TABS ===== */
+      #tabs-wrapper {
+        position: sticky; top: 0; z-index: 10;
+        background: var(--bg-card); padding: 8px 0; border-bottom: 1px solid var(--border);
+      }
+      #tabs { display: flex; gap: 8px; overflow-x: auto; padding: 0 12px; scrollbar-width: none; }
+      #tabs::-webkit-scrollbar { display: none; }
+      .tab-btn {
+        flex-shrink: 0; padding: 6px 16px; border-radius: 20px; border: none;
+        font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 900;
+        cursor: pointer; transition: all 0.2s; background: var(--bg-item); color: var(--text-main); white-space: nowrap;
+      }
+      .tab-btn.active { background: var(--gold-grad); color: #000; }
+  
+      /* ===== CONTENT ===== */
+      #content { padding: 12px 14px 140px; }
+      .section-title { font-size: 22px; font-weight: 900; padding: 14px 0 10px; }
+  
+      /* ===== ITEM CARD ===== */
+      .item-card {
+        background: var(--bg-item); border: 1px solid var(--border);
+        border-radius: 16px; padding: 12px; margin-bottom: 10px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+      }
+      .item-inner { display: flex; gap: 10px; align-items: flex-start; }
+      .item-info { flex: 1; min-width: 0; }
+      .item-name { font-size: 16px; font-weight: 900; margin-bottom: 4px; }
+      .item-desc { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+      .item-img { width: 86px; height: 86px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+      .price-box {
+        display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
+        background: #000; border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 10px; padding: 5px 10px; margin-top: 8px;
+      }
+      .currency {
+        font-size: 12px; font-weight: 900; background: var(--gold-grad);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      }
+      .price-item { display: flex; align-items: center; gap: 3px; }
+      .size-label { font-size: 11px; font-weight: 700; }
+      .price-val {
+        font-size: 13px; font-weight: 900; background: var(--gold-grad);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      }
+      .price-sep { color: var(--border); font-size: 11px; margin: 0 2px; }
+  
+      /* ===== ADD TO CART ROW ===== */
+      .add-row {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-top: 10px; gap: 8px;
+      }
+      .size-select {
+        flex: 1; background: #000; border: 1px solid var(--border);
+        border-radius: 10px; color: var(--text-main);
+        font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 700;
+        padding: 6px 10px; appearance: none; cursor: pointer;
+      }
+      .add-btn {
+        height: 38px; padding: 0 16px; border-radius: 12px; border: none;
+        background: var(--gold-grad); color: #000;
+        font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 900;
+        cursor: pointer; white-space: nowrap; flex-shrink: 0;
+        transition: transform 0.15s;
+      }
+      .add-btn:active { transform: scale(0.94); }
+  
+      /* ===== BOTTOM BAR ===== */
+      #bottom-bar {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: var(--bg-card); padding: 8px 14px 20px;
+        z-index: 20; border-top: 1px solid var(--border);
+      }
+      .bottom-inner { background: #222; border-radius: 16px; padding: 8px; display: flex; gap: 10px; align-items: center; }
+      .action-btn-main {
+        flex: 1; height: 48px; border-radius: 14px; border: none; background: var(--gold-grad); color: #000;
+        font-family: 'Cairo', sans-serif; font-size: 16px; font-weight: 900;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
+      }
+      .action-btn-icon {
+        width: 48px; height: 48px; border-radius: 14px; border: 2px solid var(--gold-1); background: var(--bg-dark);
+        display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; text-decoration: none; flex-shrink: 0;
+      }
+      .btn-hidden { display: none !important; }
+  
+      /* ===== CART SHEET ===== */
+      .sheet-overlay {
+        position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.7);
+        display: flex; flex-direction: column; justify-content: flex-end;
+        animation: overlayIn 0.25s ease;
+      }
+      @keyframes overlayIn { from{opacity:0;} to{opacity:1;} }
+      .sheet-box {
+        background: var(--bg-card); border-radius: 24px 24px 0 0;
+        max-height: 92vh; display: flex; flex-direction: column;
+        animation: sheetUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      }
+      @keyframes sheetUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
+      .sheet-handle {
+        width: 40px; height: 4px; border-radius: 2px;
+        background: linear-gradient(90deg,#FFCC44,#E08A00);
+        margin: 14px auto 0;
+      }
+      .sheet-title {
+        font-size: 20px; font-weight: 900; padding: 14px 20px 10px;
+        background: var(--gold-grad); -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent; background-clip: text;
+      }
+      .sheet-scroll { overflow-y: auto; padding: 0 16px; flex: 1; }
+      .sheet-footer { padding: 12px 16px 28px; border-top: 1px solid var(--border); }
+  
+      /* ===== CART ITEM ROW ===== */
+      .cart-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 0; border-bottom: 1px solid var(--border);
+      }
+      .cart-item-info { flex: 1; min-width: 0; }
+      .cart-item-name { font-size: 14px; font-weight: 900; }
+      .cart-item-size { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+      .cart-item-price {
+        font-size: 13px; font-weight: 900; background: var(--gold-grad);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      }
+      .qty-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+      .qty-btn {
+        width: 28px; height: 28px; border-radius: 8px; border: none;
+        background: var(--bg-item); color: var(--text-main);
+        font-size: 18px; font-weight: 900; cursor: pointer; display: flex;
+        align-items: center; justify-content: center; line-height: 1;
+      }
+      .qty-btn.minus { color: #FF3B30; }
+      .qty-num { font-size: 15px; font-weight: 900; min-width: 20px; text-align: center; }
+  
+      /* ===== ORDER FORM ===== */
+      .form-label { font-size: 12px; color: var(--text-sub); font-weight: 700; margin-bottom: 4px; display: block; }
+      .form-input {
+        width: 100%; background: var(--bg-item); border: 1px solid var(--border);
+        border-radius: 12px; color: var(--text-main); font-family: 'Cairo', sans-serif;
+        font-size: 14px; padding: 10px 14px; margin-bottom: 10px;
+        outline: none; transition: border-color 0.2s;
+      }
+      .form-input:focus { border-color: var(--gold-1); }
+      .form-input::placeholder { color: rgba(255,255,255,0.3); }
+  
+      .total-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 0 14px; font-size: 15px; font-weight: 900;
+      }
+      .total-val {
+        font-size: 18px; font-weight: 900; background: var(--gold-grad);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      }
+  
+      .send-btn {
+        width: 100%; height: 52px; border-radius: 16px; border: none;
+        background: var(--gold-grad); color: #000;
+        font-family: 'Cairo', sans-serif; font-size: 17px; font-weight: 900;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+        box-shadow: 0 4px 20px rgba(224,138,0,0.35);
+      }
+      .send-btn:active { transform: scale(0.98); }
+      .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+      .empty-cart {
+        text-align: center; padding: 40px 0;
+        font-size: 14px; color: var(--text-sub); font-weight: 700;
+      }
+      .empty-cart .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    </style>
+  </head>
+  <body>
+  
+  <!-- LOADER -->
+  <div id="loader">
+    <div class="loader-logo">🥔</div>
+    <div class="loader-text" id="loader-text">جاري فتح التطبيق...</div>
+    <div class="loader-spinner"></div>
   </div>
-
-  <!-- TOP ACTIONS -->
-  <div class="top-actions">
-    <div id="app-banner" onclick="openApp()">
-      <div class="b-icon">🥔</div>
-      <div class="b-text">
-        <strong id="banner-title">افتح في التطبيق</strong>
-        <span id="banner-sub">تجربة أفضل مع تطبيق Potatoo</span>
+  
+  <!-- ERROR -->
+  <div id="error-state">
+    <div class="err-icon">😕</div>
+    <h2 id="err-title">المنيو غير موجود</h2>
+    <p id="err-msg">تعذر تحميل بيانات المطعم.</p>
+  </div>
+  
+  <!-- MAIN -->
+  <div id="main">
+    <!-- HEADER -->
+    <div id="header">
+      <img class="header-cover" src="" id="header-cover" onerror="this.style.display='none'" alt="" />
+      <div class="header-overlay"></div>
+      <div class="header-content">
+        <div id="branch-logo-wrap"></div>
+        <div class="branch-name-main" id="branch-name-main"></div>
+        <div class="branch-name-sub" id="branch-name-sub"></div>
       </div>
-      <div class="b-arrow">←</div>
     </div>
-    <!-- زر العربة يظهر دايمًا -->
-    <a id="apk-btn" href="https://drive.google.com/file/d/1Y98zqK_L8mu87CJnFXUwe8hC7p6Y7awC/view?usp=drive_link" target="_blank" style="display:none; width:52px; height:52px; border-radius:16px; flex-shrink:0; text-decoration:none; align-items:center; justify-content:center; overflow:hidden;">
-  <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
-    <rect width="52" height="52" rx="16" fill="#1A1A1A"/>
-    <rect width="52" height="52" rx="16" fill="none" stroke="#FFCC44" stroke-width="1.5"/>
-    <!-- Robot head -->
-    <rect x="14" y="16" width="24" height="16" rx="5" fill="#3DDC84"/>
-    <!-- Eyes -->
-    <circle cx="21" cy="23" r="2" fill="#1A1A1A"/>
-    <circle cx="31" cy="23" r="2" fill="#1A1A1A"/>
-    <!-- Antennas -->
-    <line x1="20" y1="16" x2="16" y2="10" stroke="#3DDC84" stroke-width="2" stroke-linecap="round"/>
-    <line x1="32" y1="16" x2="36" y2="10" stroke="#3DDC84" stroke-width="2" stroke-linecap="round"/>
-    <!-- APK text -->
-    <text x="26" y="44" text-anchor="middle" font-family="monospace" font-size="9" font-weight="700" fill="#FFCC44" letter-spacing="1">APK</text>
-  </svg>
-</a>
-<button id="cart-btn" onclick="openCart()" style="display:none;">
-  🛒
-  <span id="cart-badge">0</span>
-</button>
-  </div>
-
-  <!-- LANG -->
-  <div class="lang-toggle">
-    <button class="lang-btn active" onclick="setLang('ar')" id="btn-ar">العربية</button>
-    <button class="lang-btn" onclick="setLang('en')" id="btn-en">English</button>
-  </div>
-
-  <!-- TABS -->
-  <div id="tabs-wrapper"><div id="tabs"></div></div>
-
-  <!-- CONTENT -->
-  <div id="content"></div>
-
-  <!-- BOTTOM BAR -->
-  <div id="bottom-bar">
-    <div class="bottom-inner">
-      <a id="btn-call" class="action-btn-main btn-hidden" href="#">
-        <span>📞</span><span id="call-label">اتصل</span>
-      </a>
-      <a id="btn-whatsapp" class="action-btn-icon btn-hidden" href="#" target="_blank">💬</a>
-      <a id="btn-location" class="action-btn-icon btn-hidden" href="#" target="_blank">📍</a>
-    </div>
-  </div>
-</div>
-
-<script>
-// ============================================================
-// SIZE MAP
-// ============================================================
-const FIELD_TO_KEY = {
-  smallPrice:'S', mediumPrice:'M', largePrice:'L', xlPrice:'XL',
-  portionPrice:'1/8', quarterKgPrice:'1/4', thirdKgPrice:'1/3',
-  halfKgPrice:'1/2', oneKgPrice:'1KG',
-  todayPrice:'Talab', shamiPrice:'Shami', frenchPrice:'French',
-  syrianPrice:'Syrian', grilledPrice:'Grilled', baladiPrice:'Baladi',
-  sajPrice:'Saj', finoPrice:'Fino', bunsPrice:'Buns',
-  tortillaPrice:'Tortilla', toastPrice:'Toast', beefPrice:'Beef',
-  chickenPrice:'Chicken', cheesePrice:'Cheese', seafoodPrice:'SeaFood',
-  mixPrice:'Mix', broestPrice:'Broest', mealPrice:'Meal',
-  piecePrice:'Piece', boxPrice:'Box', singleItemPrice:'Single',
-  singlePrice:'Single', doublePrice:'Double', comboPrice:'Combo',
-  regularPrice:'Regular', fardiPrice:'Fardi', familyItemPrice:'Family',
-  familyPrice:'Family', sandwichPrice:'Sandwich', superPrice:'Super',
-  workPrice:'Thigh', breastPrice:'Breast', coldPrice:'Cold',
-  hotPrice:'Hot', friedPrice:'Fried',
-};
-
-const SIZE_LABELS = {
-  S:{ar:'S',en:'S'}, M:{ar:'M',en:'M'}, L:{ar:'L',en:'L'}, XL:{ar:'XL',en:'XL'},
-  '1/8':{ar:'1/8',en:'1/8'}, '1/4':{ar:'1/4',en:'1/4'}, '1/3':{ar:'1/3',en:'1/3'}, '1/2':{ar:'1/2',en:'1/2'},
-  '1KG':{ar:'1 كيلو',en:'1 KG'}, Talab:{ar:'طلب',en:'Order'},
-  Shami:{ar:'شامي',en:'Shami'}, French:{ar:'فرنساوي',en:'French'},
-  Syrian:{ar:'سوري',en:'Syrian'}, Grilled:{ar:'مشوي',en:'Grilled'},
-  Baladi:{ar:'بلدي',en:'Baladi'}, Saj:{ar:'صاج',en:'Saj'},
-  Fino:{ar:'فينو',en:'Fino'}, Buns:{ar:'كيزر',en:'Buns'},
-  Tortilla:{ar:'تورتيلا',en:'Tortilla'}, Toast:{ar:'توست',en:'Toast'},
-  Beef:{ar:'لحمه',en:'Beef'}, Chicken:{ar:'فراخ',en:'Chicken'},
-  Cheese:{ar:'جبن',en:'Cheese'}, SeaFood:{ar:'سي فوود',en:'SeaFood'},
-  Mix:{ar:'ميكس',en:'Mix'}, Broest:{ar:'بروست',en:'Broest'},
-  Meal:{ar:'وجبة',en:'Meal'}, Piece:{ar:'قطعة',en:'Piece'},
-  Box:{ar:'بوكس',en:'Box'}, Single:{ar:'سنجل',en:'Single'},
-  Double:{ar:'دبل',en:'Double'}, Combo:{ar:'كومبو',en:'Combo'},
-  Regular:{ar:'عادي',en:'Regular'}, Fardi:{ar:'-',en:'-'},
-  Family:{ar:'عائلي',en:'Family'}, Sandwich:{ar:'ساندوتش',en:'Sandwich'},
-  Super:{ar:'سوبر',en:'Super'}, Thigh:{ar:'ورك',en:'Thigh'},
-  Breast:{ar:'صدر',en:'Breast'}, Cold:{ar:'مثلج',en:'Cold'},
-  Hot:{ar:'ساخن',en:'Hot'}, Fried:{ar:'مقلي',en:'Fried'},
-};
-
-// ============================================================
-// STATE
-// ============================================================
-let branchData = null;
-let currentLang = 'ar';
-let branchId = null;
-let cart = [];
-
-// ============================================================
-// INIT
-// ============================================================
-window.onload = function () {
-  const params = new URLSearchParams(window.location.search);
-  branchId = params.get('id');
-
-  if (!branchId) { showError('رابط غير صحيح', 'لا يوجد معرف للمطعم في الرابط.'); return; }
-
-  window.location.href = 'potatoo://menu/' + branchId;
-
-  setTimeout(function () {
-    document.getElementById('loader-text').textContent = 'جاري تحميل المنيو...';
-    loadMenu();
-  }, 2500);
-};
-
-// ============================================================
-// FETCH
-// ============================================================
-async function loadMenu() {
-  try {
-    const res = await fetch('https://potatoo-eight.vercel.app/api/restaurant/menu/' + branchId);
-    const json = await res.json();
-    if (!json.success || !json.data || !json.data[0]) {
-      showError('المنيو غير موجود', 'لم يتم العثور على بيانات لهذا المطعم.'); return;
-    }
-    branchData = json.data[0];
-    renderPage();
-  } catch (e) {
-    showError('خطأ في الاتصال', 'تعذر تحميل المنيو، تحقق من الاتصال.');
-  }
-}
-
-// ============================================================
-// RENDER
-// ============================================================
-function renderPage() {
-  hideLoader();
-  document.getElementById('main').style.display = 'block';
-  renderHeader();
-  renderTabs();
-  renderContent();
-  renderBottomBar();
-  document.getElementById('app-banner').style.display = 'flex';
-
-  // زر العربة يظهر دايمًا (سواء في واتساب أو لأ)
-  document.getElementById('cart-btn').style.display = 'flex';
-document.getElementById('apk-btn').style.display = 'flex';
-}
-
-function renderHeader() {
-  const b = branchData;
-  const logoUrl = b.image?.url || '';
-  const logoWrap = document.getElementById('branch-logo-wrap');
-  const coverEl = document.getElementById('header-cover');
-
-  if (logoUrl) {
-    coverEl.src = logoUrl;
-    coverEl.style.display = 'block';
-    logoWrap.innerHTML = `<img class="branch-logo" src="${logoUrl}" alt="logo" onerror="this.style.display='none'" />`;
-  } else {
-    coverEl.style.display = 'none';
-    logoWrap.innerHTML = `<div class="branch-logo-placeholder">🥔</div>`;
-  }
-
-  const fullName = currentLang === 'ar' ? (b.arabicName || '') : (b.englishName || '');
-  const match = fullName.match(/\(([^)]+)\)/);
-  const mainName = fullName.replace(/\s*\([^)]*\)/g, '').trim();
-  const subName = match ? match[1] : '';
-
-  document.getElementById('branch-name-main').textContent = mainName;
-  document.getElementById('branch-name-sub').textContent = subName;
-  document.title = mainName || 'Potatoo Menu';
-}
-
-function renderTabs() {
-  const sections = branchData?.sections || [];
-  const tabsEl = document.getElementById('tabs');
-  tabsEl.innerHTML = '';
-  sections.forEach((sec, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
-    btn.textContent = currentLang === 'ar' ? (sec.arabicName || '') : (sec.englishName || '');
-    btn.dataset.index = i;
-    btn.onclick = () => scrollToSection(i);
-    tabsEl.appendChild(btn);
-  });
-}
-
-function renderContent() {
-  const sections = branchData?.sections || [];
-  const content = document.getElementById('content');
-  content.innerHTML = '';
-  sections.forEach((sec, si) => {
-    const block = document.createElement('div');
-    block.id = 'section-' + si;
-    const title = document.createElement('div');
-    title.className = 'section-title';
-    title.textContent = currentLang === 'ar' ? (sec.arabicName || '') : (sec.englishName || '');
-    block.appendChild(title);
-    (sec.items || []).forEach(item => block.appendChild(buildItemCard(item)));
-    content.appendChild(block);
-  });
-  setupScrollObserver(sections.length);
-}
-
-function buildItemCard(item) {
-  const card = document.createElement('div');
-  card.className = 'item-card';
-
-  const name = currentLang === 'ar' ? (item.arabicName || '') : (item.englishName || '');
-  const desc = currentLang === 'ar' ? (item.arabicDescription || '') : (item.englishDescription || '');
-  const imgUrl = item.image?.url || '';
-  const sizes = extractSizes(item);
-
-  // ===== price display =====
-  let priceHtml = '';
-  if (sizes.length > 0) {
-    const isSingle = sizes.length === 1;
-    const sizeItems = sizes.map((s, i) => {
-      const label = SIZE_LABELS[s.key]?.[currentLang] ?? s.key;
-      const val = s.value === '0' ? (currentLang === 'ar' ? 'حسب اليوم' : 'Price/Day') : s.value;
-      const sep = i < sizes.length - 1 ? '<span class="price-sep">·</span>' : '';
-      return `<span class="price-item">
-        ${!isSingle ? `<span class="size-label">${label}</span>` : ''}
-        <span class="price-val">${val}</span>
-      </span>${sep}`;
-    }).join('');
-    priceHtml = `<div class="price-box">
-      <span class="currency">${currentLang === 'ar' ? 'ج' : 'L.E'}</span>
-      ${sizeItems}
-    </div>`;
-  }
-
-  const imgHtml = imgUrl
-    ? `<img class="item-img" src="${imgUrl}" alt="${name}" loading="lazy" onerror="this.style.display='none'" />`
-    : '';
-
-  // ===== add to cart row — يظهر دايمًا لو في أسعار =====
-  let addRowHtml = '';
-  if (sizes.length > 0) {
-    const itemId = item._id || item.id || name;
-
-    if (sizes.length === 1) {
-      const s = sizes[0];
-      addRowHtml = `<div class="add-row">
-        <button class="add-btn" onclick="addToCart('${itemId}','${escAttr(name)}','${escAttr(item.arabicName||'')}','${escAttr(item.englishName||'')}','${s.key}','${s.value}')">
-          + ${currentLang === 'ar' ? 'أضف للعربة' : 'Add to cart'}
-        </button>
-      </div>`;
-    } else {
-      const opts = sizes.map(s => {
-        const label = SIZE_LABELS[s.key]?.[currentLang] ?? s.key;
-        const val = s.value === '0' ? '?' : s.value;
-        return `<option value="${s.key}|${s.value}">${label} — ${val} ${currentLang==='ar'?'ج':'LE'}</option>`;
-      }).join('');
-      addRowHtml = `<div class="add-row">
-        <select class="size-select" id="sel-${itemId}">${opts}</select>
-        <button class="add-btn" onclick="addToCartFromSelect('${itemId}','${escAttr(item.arabicName||'')}','${escAttr(item.englishName||'')}')">
-          + ${currentLang === 'ar' ? 'أضف' : 'Add'}
-        </button>
-      </div>`;
-    }
-  }
-
-  card.innerHTML = `
-    <div class="item-inner">
-      <div class="item-info">
-        <div class="item-name">${name}</div>
-        ${desc ? `<div class="item-desc">${desc}</div>` : ''}
-        ${priceHtml}
-        ${addRowHtml}
-      </div>
-      ${imgHtml}
-    </div>`;
-
-  return card;
-}
-
-function escAttr(s) { return s.replace(/'/g,"&#39;").replace(/"/g,'&quot;'); }
-
-function extractSizes(item) {
-  const seen = new Set();
-  const result = [];
-  for (const [field, key] of Object.entries(FIELD_TO_KEY)) {
-    if (seen.has(key)) continue;
-    const val = item[field];
-    if (val !== undefined && val !== null && val !== '') {
-      result.push({ key, value: String(val) });
-      seen.add(key);
-    }
-  }
-  return result;
-}
-
-function renderBottomBar() {
-  const b = branchData;
-  const callBtn = document.getElementById('btn-call');
-  const waBtn = document.getElementById('btn-whatsapp');
-  const locBtn = document.getElementById('btn-location');
-
-  if (b.phone) {
-    const numbers = b.phone.split(',').map(n => n.trim()).filter(Boolean);
-    if (numbers.length === 1) {
-      callBtn.href = 'tel:' + numbers[0].replace(/[^0-9+]/g, '');
-    } else {
-      callBtn.href = '#';
-      callBtn.onclick = (e) => { e.preventDefault(); showPhoneSheet(numbers); };
-    }
-    callBtn.classList.remove('btn-hidden');
-  }
-  if (b.whatsApp) {
-    waBtn.href = 'https://wa.me/' + b.whatsApp.replace(/[^0-9+]/g, '');
-    waBtn.classList.remove('btn-hidden');
-  }
-  if (b.googleMapLink) {
-    locBtn.href = b.googleMapLink;
-    locBtn.classList.remove('btn-hidden');
-  }
-  document.getElementById('call-label').textContent = currentLang === 'ar' ? 'اتصل' : 'Call';
-}
-
-// ============================================================
-// CART LOGIC
-// ============================================================
-function addToCart(itemId, name, nameAr, nameEn, sizeKey, price) {
-  const existing = cart.find(c => c.itemId === itemId && c.sizeKey === sizeKey);
-  if (existing) {
-    existing.qty++;
-  } else {
-    cart.push({ itemId, nameAr, nameEn, sizeKey, price, qty: 1 });
-  }
-  updateCartBadge();
-  flashCartBtn();
-}
-
-function addToCartFromSelect(itemId, nameAr, nameEn) {
-  const sel = document.getElementById('sel-' + itemId);
-  if (!sel) return;
-  const [sizeKey, price] = sel.value.split('|');
-  addToCart(itemId, nameAr, nameAr, nameEn, sizeKey, price);
-}
-
-function updateCartBadge() {
-  const total = cart.reduce((s, c) => s + c.qty, 0);
-  const badge = document.getElementById('cart-badge');
-  badge.textContent = total;
-  badge.classList.toggle('show', total > 0);
-}
-
-function flashCartBtn() {
-  const btn = document.getElementById('cart-btn');
-  btn.style.transform = 'scale(1.2)';
-  setTimeout(() => btn.style.transform = '', 200);
-}
-
-function changeQty(itemId, sizeKey, delta) {
-  const idx = cart.findIndex(c => c.itemId === itemId && c.sizeKey === sizeKey);
-  if (idx === -1) return;
-  cart[idx].qty += delta;
-  if (cart[idx].qty <= 0) cart.splice(idx, 1);
-  updateCartBadge();
-  renderCartItems();
-}
-
-// ============================================================
-// CART SHEET
-// ============================================================
-function openCart() {
-  const existing = document.getElementById('cart-sheet');
-  if (existing) existing.remove();
-
-  // منع الـ body من الـ scroll
-  document.body.style.overflow = 'hidden';
-
-  const overlay = document.createElement('div');
-  overlay.className = 'sheet-overlay';
-  overlay.id = 'cart-sheet';
-  overlay.onclick = (e) => { if (e.target === overlay) closeCart(); };
-
-  const box = document.createElement('div');
-  box.className = 'sheet-box';
-  box.id = 'cart-box';
-  box.innerHTML = `
-    <div class="sheet-handle"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px;">
-      <div class="sheet-title" style="padding:0;" id="cart-title">${currentLang==='ar'?'عربة الطلب 🛒':'Order Cart 🛒'}</div>
-      <button onclick="closeCart()" style="
-        width:32px;height:32px;border-radius:50%;border:1px solid var(--border);
-        background:var(--bg-item);color:var(--text-sub);font-size:18px;
-        cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
-      ">✕</button>
-    </div>
-    <div class="sheet-scroll" id="cart-items"></div>
-    <div class="sheet-footer" id="cart-footer"></div>`;
-
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-  renderCartItems();
-}
-
-function renderCartItems() {
-  const container = document.getElementById('cart-items');
-  const footer = document.getElementById('cart-footer');
-  if (!container || !footer) return;
-
-  if (cart.length === 0) {
-    container.innerHTML = `<div class="empty-cart">
-      <div class="empty-icon">🛒</div>
-      <div>${currentLang==='ar'?'العربة فارغة':'Cart is empty'}</div>
-    </div>`;
-    footer.innerHTML = '';
-    return;
-  }
-
-  container.innerHTML = cart.map((c) => {
-    const name = currentLang === 'ar' ? c.nameAr : c.nameEn;
-    const sizeLabel = SIZE_LABELS[c.sizeKey]?.[currentLang] ?? c.sizeKey;
-    const priceNum = parseFloat(c.price) || 0;
-    const lineTotal = priceNum > 0 ? (priceNum * c.qty) + (currentLang==='ar'?' ج':' LE') : '—';
-    return `<div class="cart-item">
-      <div class="cart-item-info">
-        <div class="cart-item-name">${name}</div>
-        <div class="cart-item-size">${sizeLabel}</div>
-        <div class="cart-item-price">${lineTotal}</div>
-        <div class="qty-row">
-          <button class="qty-btn minus" onclick="changeQty('${c.itemId}','${c.sizeKey}',-1)">−</button>
-          <span class="qty-num">${c.qty}</span>
-          <button class="qty-btn" onclick="changeQty('${c.itemId}','${c.sizeKey}',1)">+</button>
+  
+    <!-- TOP ACTIONS -->
+    <div class="top-actions">
+      <div id="app-banner" onclick="openApp()">
+        <div class="b-icon">🥔</div>
+        <div class="b-text">
+          <strong id="banner-title">افتح في التطبيق</strong>
+          <span id="banner-sub">تجربة أفضل مع تطبيق Potatoo</span>
         </div>
+        <div class="b-arrow">←</div>
       </div>
-    </div>`;
-  }).join('');
-
-  const total = cart.reduce((s, c) => s + (parseFloat(c.price)||0) * c.qty, 0);
-  const totalStr = total > 0 ? total + (currentLang==='ar'?' ج':' LE') : '—';
-
-  const hasWa = !!branchData?.whatsApp;
-
-  // ===== الأزرار: لو في واتساب → الاتنين، لو مفيش → مطعم بس =====
+      <!-- زر العربة يظهر دايمًا -->
+      <a id="apk-btn" href="https://drive.google.com/file/d/1Y98zqK_L8mu87CJnFXUwe8hC7p6Y7awC/view?usp=drive_link" target="_blank" style="display:none; width:52px; height:52px; border-radius:16px; flex-shrink:0; text-decoration:none; align-items:center; justify-content:center; overflow:hidden;">
+    <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+      <rect width="52" height="52" rx="16" fill="#1A1A1A"/>
+      <rect width="52" height="52" rx="16" fill="none" stroke="#FFCC44" stroke-width="1.5"/>
+      <!-- Robot head -->
+      <rect x="14" y="16" width="24" height="16" rx="5" fill="#3DDC84"/>
+      <!-- Eyes -->
+      <circle cx="21" cy="23" r="2" fill="#1A1A1A"/>
+      <circle cx="31" cy="23" r="2" fill="#1A1A1A"/>
+      <!-- Antennas -->
+      <line x1="20" y1="16" x2="16" y2="10" stroke="#3DDC84" stroke-width="2" stroke-linecap="round"/>
+      <line x1="32" y1="16" x2="36" y2="10" stroke="#3DDC84" stroke-width="2" stroke-linecap="round"/>
+      <!-- APK text -->
+      <text x="26" y="44" text-anchor="middle" font-family="monospace" font-size="9" font-weight="700" fill="#FFCC44" letter-spacing="1">APK</text>
+    </svg>
+  </a>
+  <button id="cart-btn" onclick="openCart()" style="display:none;">
+    🛒
+    <span id="cart-badge">0</span>
+  </button>
+    </div>
+  
+    <!-- LANG -->
+    <div class="lang-toggle">
+      <button class="lang-btn active" onclick="setLang('ar')" id="btn-ar">العربية</button>
+      <button class="lang-btn" onclick="setLang('en')" id="btn-en">English</button>
+    </div>
+  
+    <!-- TABS -->
+    <div id="tabs-wrapper"><div id="tabs"></div></div>
+  
+    <!-- CONTENT -->
+    <div id="content"></div>
+  
+    <!-- BOTTOM BAR -->
+    <div id="bottom-bar">
+      <div class="bottom-inner">
+        <a id="btn-call" class="action-btn-main btn-hidden" href="#">
+          <span>📞</span><span id="call-label">اتصل</span>
+        </a>
+        <a id="btn-whatsapp" class="action-btn-icon btn-hidden" href="#" target="_blank">💬</a>
+        <a id="btn-location" class="action-btn-icon btn-hidden" href="#" target="_blank">📍</a>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+  // ============================================================
+  // SIZE MAP
+  // ============================================================
+  const FIELD_TO_KEY = {
+    smallPrice:'S', mediumPrice:'M', largePrice:'L', xlPrice:'XL',
+    portionPrice:'1/8', quarterKgPrice:'1/4', thirdKgPrice:'1/3',
+    halfKgPrice:'1/2', oneKgPrice:'1KG',
+    todayPrice:'Talab', shamiPrice:'Shami', frenchPrice:'French',
+    syrianPrice:'Syrian', grilledPrice:'Grilled', baladiPrice:'Baladi',
+    sajPrice:'Saj', finoPrice:'Fino', bunsPrice:'Buns',
+    tortillaPrice:'Tortilla', toastPrice:'Toast', beefPrice:'Beef',
+    chickenPrice:'Chicken', cheesePrice:'Cheese', seafoodPrice:'SeaFood',
+    mixPrice:'Mix', broestPrice:'Broest', mealPrice:'Meal',
+    piecePrice:'Piece', boxPrice:'Box', singleItemPrice:'Single',
+    singlePrice:'Single', doublePrice:'Double', comboPrice:'Combo',
+    regularPrice:'Regular', fardiPrice:'Fardi', familyItemPrice:'Family',
+    familyPrice:'Family', sandwichPrice:'Sandwich', superPrice:'Super',
+    workPrice:'Thigh', breastPrice:'Breast', coldPrice:'Cold',
+    hotPrice:'Hot', friedPrice:'Fried',
+  };
+  
+  const SIZE_LABELS = {
+    S:{ar:'S',en:'S'}, M:{ar:'M',en:'M'}, L:{ar:'L',en:'L'}, XL:{ar:'XL',en:'XL'},
+    '1/8':{ar:'1/8',en:'1/8'}, '1/4':{ar:'1/4',en:'1/4'}, '1/3':{ar:'1/3',en:'1/3'}, '1/2':{ar:'1/2',en:'1/2'},
+    '1KG':{ar:'1 كيلو',en:'1 KG'}, Talab:{ar:'طلب',en:'Order'},
+    Shami:{ar:'شامي',en:'Shami'}, French:{ar:'فرنساوي',en:'French'},
+    Syrian:{ar:'سوري',en:'Syrian'}, Grilled:{ar:'مشوي',en:'Grilled'},
+    Baladi:{ar:'بلدي',en:'Baladi'}, Saj:{ar:'صاج',en:'Saj'},
+    Fino:{ar:'فينو',en:'Fino'}, Buns:{ar:'كيزر',en:'Buns'},
+    Tortilla:{ar:'تورتيلا',en:'Tortilla'}, Toast:{ar:'توست',en:'Toast'},
+    Beef:{ar:'لحمه',en:'Beef'}, Chicken:{ar:'فراخ',en:'Chicken'},
+    Cheese:{ar:'جبن',en:'Cheese'}, SeaFood:{ar:'سي فوود',en:'SeaFood'},
+    Mix:{ar:'ميكس',en:'Mix'}, Broest:{ar:'بروست',en:'Broest'},
+    Meal:{ar:'وجبة',en:'Meal'}, Piece:{ar:'قطعة',en:'Piece'},
+    Box:{ar:'بوكس',en:'Box'}, Single:{ar:'سنجل',en:'Single'},
+    Double:{ar:'دبل',en:'Double'}, Combo:{ar:'كومبو',en:'Combo'},
+    Regular:{ar:'عادي',en:'Regular'}, Fardi:{ar:'-',en:'-'},
+    Family:{ar:'عائلي',en:'Family'}, Sandwich:{ar:'ساندوتش',en:'Sandwich'},
+    Super:{ar:'سوبر',en:'Super'}, Thigh:{ar:'ورك',en:'Thigh'},
+    Breast:{ar:'صدر',en:'Breast'}, Cold:{ar:'مثلج',en:'Cold'},
+    Hot:{ar:'ساخن',en:'Hot'}, Fried:{ar:'مقلي',en:'Fried'},
+  };
+  
+  // ============================================================
+  // STATE
+  // ============================================================
+  let branchData = null;
+  let currentLang = 'ar';
+  let branchId = null;
+  let cart = [];
+  
+  // ============================================================
+  // INIT
+  // ============================================================
+  window.onload = function () {
+    const params = new URLSearchParams(window.location.search);
+    branchId = params.get('id');
+  
+    if (!branchId) { showError('رابط غير صحيح', 'لا يوجد معرف للمطعم في الرابط.'); return; }
+  
+    window.location.href = 'potatoo://menu/' + branchId;
+  
+    setTimeout(function () {
+      document.getElementById('loader-text').textContent = 'جاري تحميل المنيو...';
+      loadMenu();
+    }, 2500);
+  };
+  
+  // ============================================================
+  // FETCH
+  // ============================================================
+  async function loadMenu() {
+    try {
+      const res = await fetch('https://potatoo-eight.vercel.app/api/restaurant/menu/' + branchId);
+      const json = await res.json();
+      if (!json.success || !json.data || !json.data[0]) {
+        showError('المنيو غير موجود', 'لم يتم العثور على بيانات لهذا المطعم.'); return;
+      }
+      branchData = json.data[0];
+      renderPage();
+    } catch (e) {
+      showError('خطأ في الاتصال', 'تعذر تحميل المنيو، تحقق من الاتصال.');
+    }
+  }
+  
+  // ============================================================
+  // RENDER
+  // ============================================================
+  function renderPage() {
+    hideLoader();
+    document.getElementById('main').style.display = 'block';
+    renderHeader();
+    renderTabs();
+    renderContent();
+    renderBottomBar();
+    document.getElementById('app-banner').style.display = 'flex';
+  
+    // زر العربة يظهر دايمًا (سواء في واتساب أو لأ)
+    document.getElementById('cart-btn').style.display = 'flex';
+  document.getElementById('apk-btn').style.display = 'flex';
+  }
+  
+  function renderHeader() {
+    const b = branchData;
+    const logoUrl = b.image?.url || '';
+    const logoWrap = document.getElementById('branch-logo-wrap');
+    const coverEl = document.getElementById('header-cover');
+  
+    if (logoUrl) {
+      coverEl.src = logoUrl;
+      coverEl.style.display = 'block';
+      logoWrap.innerHTML = `<img class="branch-logo" src="${logoUrl}" alt="logo" onerror="this.style.display='none'" />`;
+    } else {
+      coverEl.style.display = 'none';
+      logoWrap.innerHTML = `<div class="branch-logo-placeholder">🥔</div>`;
+    }
+  
+    const fullName = currentLang === 'ar' ? (b.arabicName || '') : (b.englishName || '');
+    const match = fullName.match(/\(([^)]+)\)/);
+    const mainName = fullName.replace(/\s*\([^)]*\)/g, '').trim();
+    const subName = match ? match[1] : '';
+  
+    document.getElementById('branch-name-main').textContent = mainName;
+    document.getElementById('branch-name-sub').textContent = subName;
+    document.title = mainName || 'Potatoo Menu';
+  }
+  
+  function renderTabs() {
+    const sections = branchData?.sections || [];
+    const tabsEl = document.getElementById('tabs');
+    tabsEl.innerHTML = '';
+    sections.forEach((sec, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+      btn.textContent = currentLang === 'ar' ? (sec.arabicName || '') : (sec.englishName || '');
+      btn.dataset.index = i;
+      btn.onclick = () => scrollToSection(i);
+      tabsEl.appendChild(btn);
+    });
+  }
+  
+  function renderContent() {
+    const sections = branchData?.sections || [];
+    const content = document.getElementById('content');
+    content.innerHTML = '';
+    sections.forEach((sec, si) => {
+      const block = document.createElement('div');
+      block.id = 'section-' + si;
+      const title = document.createElement('div');
+      title.className = 'section-title';
+      title.textContent = currentLang === 'ar' ? (sec.arabicName || '') : (sec.englishName || '');
+      block.appendChild(title);
+      (sec.items || []).forEach(item => block.appendChild(buildItemCard(item)));
+      content.appendChild(block);
+    });
+    setupScrollObserver(sections.length);
+  }
+  
+  function buildItemCard(item) {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+  
+    const name = currentLang === 'ar' ? (item.arabicName || '') : (item.englishName || '');
+    const desc = currentLang === 'ar' ? (item.arabicDescription || '') : (item.englishDescription || '');
+    const imgUrl = item.image?.url || '';
+    const sizes = extractSizes(item);
+  
+    // ===== price display =====
+    let priceHtml = '';
+    if (sizes.length > 0) {
+      const isSingle = sizes.length === 1;
+      const sizeItems = sizes.map((s, i) => {
+        const label = SIZE_LABELS[s.key]?.[currentLang] ?? s.key;
+        const val = s.value === '0' ? (currentLang === 'ar' ? 'حسب اليوم' : 'Price/Day') : s.value;
+        const sep = i < sizes.length - 1 ? '<span class="price-sep">·</span>' : '';
+        return `<span class="price-item">
+          ${!isSingle ? `<span class="size-label">${label}</span>` : ''}
+          <span class="price-val">${val}</span>
+        </span>${sep}`;
+      }).join('');
+      priceHtml = `<div class="price-box">
+        <span class="currency">${currentLang === 'ar' ? 'ج' : 'L.E'}</span>
+        ${sizeItems}
+      </div>`;
+    }
+  
+    const imgHtml = imgUrl
+      ? `<img class="item-img" src="${imgUrl}" alt="${name}" loading="lazy" onerror="this.style.display='none'" />`
+      : '';
+  
+    // ===== add to cart row — يظهر دايمًا لو في أسعار =====
+    let addRowHtml = '';
+    if (sizes.length > 0) {
+      const itemId = item._id || item.id || name;
+  
+      if (sizes.length === 1) {
+        const s = sizes[0];
+        addRowHtml = `<div class="add-row">
+          <button class="add-btn" onclick="addToCart('${itemId}','${escAttr(name)}','${escAttr(item.arabicName||'')}','${escAttr(item.englishName||'')}','${s.key}','${s.value}')">
+            + ${currentLang === 'ar' ? 'أضف للعربة' : 'Add to cart'}
+          </button>
+        </div>`;
+      } else {
+        const opts = sizes.map(s => {
+          const label = SIZE_LABELS[s.key]?.[currentLang] ?? s.key;
+          const val = s.value === '0' ? '?' : s.value;
+          return `<option value="${s.key}|${s.value}">${label} — ${val} ${currentLang==='ar'?'ج':'LE'}</option>`;
+        }).join('');
+        addRowHtml = `<div class="add-row">
+          <select class="size-select" id="sel-${itemId}">${opts}</select>
+          <button class="add-btn" onclick="addToCartFromSelect('${itemId}','${escAttr(item.arabicName||'')}','${escAttr(item.englishName||'')}')">
+            + ${currentLang === 'ar' ? 'أضف' : 'Add'}
+          </button>
+        </div>`;
+      }
+    }
+  
+    card.innerHTML = `
+      <div class="item-inner">
+        <div class="item-info">
+          <div class="item-name">${name}</div>
+          ${desc ? `<div class="item-desc">${desc}</div>` : ''}
+          ${priceHtml}
+          ${addRowHtml}
+        </div>
+        ${imgHtml}
+      </div>`;
+  
+    return card;
+  }
+  
+  function escAttr(s) { return s.replace(/'/g,"&#39;").replace(/"/g,'&quot;'); }
+  
+  function extractSizes(item) {
+    const seen = new Set();
+    const result = [];
+    for (const [field, key] of Object.entries(FIELD_TO_KEY)) {
+      if (seen.has(key)) continue;
+      const val = item[field];
+      if (val !== undefined && val !== null && val !== '') {
+        result.push({ key, value: String(val) });
+        seen.add(key);
+      }
+    }
+    return result;
+  }
+  
+  function renderBottomBar() {
+    const b = branchData;
+    const callBtn = document.getElementById('btn-call');
+    const waBtn = document.getElementById('btn-whatsapp');
+    const locBtn = document.getElementById('btn-location');
+  
+    if (b.phone) {
+      const numbers = b.phone.split(',').map(n => n.trim()).filter(Boolean);
+      if (numbers.length === 1) {
+        callBtn.href = 'tel:' + numbers[0].replace(/[^0-9+]/g, '');
+      } else {
+        callBtn.href = '#';
+        callBtn.onclick = (e) => { e.preventDefault(); showPhoneSheet(numbers); };
+      }
+      callBtn.classList.remove('btn-hidden');
+    }
+    if (b.whatsApp) {
+      waBtn.href = 'https://wa.me/' + b.whatsApp.replace(/[^0-9+]/g, '');
+      waBtn.classList.remove('btn-hidden');
+    }
+    if (b.googleMapLink) {
+      locBtn.href = b.googleMapLink;
+      locBtn.classList.remove('btn-hidden');
+    }
+    document.getElementById('call-label').textContent = currentLang === 'ar' ? 'اتصل' : 'Call';
+  }
+  
+  // ============================================================
+  // CART LOGIC
+  // ============================================================
+  function addToCart(itemId, name, nameAr, nameEn, sizeKey, price) {
+    const existing = cart.find(c => c.itemId === itemId && c.sizeKey === sizeKey);
+    if (existing) {
+      existing.qty++;
+    } else {
+      cart.push({ itemId, nameAr, nameEn, sizeKey, price, qty: 1 });
+    }
+    updateCartBadge();
+    flashCartBtn();
+  }
+  
+  function addToCartFromSelect(itemId, nameAr, nameEn) {
+    const sel = document.getElementById('sel-' + itemId);
+    if (!sel) return;
+    const [sizeKey, price] = sel.value.split('|');
+    addToCart(itemId, nameAr, nameAr, nameEn, sizeKey, price);
+  }
+  
+  function updateCartBadge() {
+    const total = cart.reduce((s, c) => s + c.qty, 0);
+    const badge = document.getElementById('cart-badge');
+    badge.textContent = total;
+    badge.classList.toggle('show', total > 0);
+  }
+  
+  function flashCartBtn() {
+    const btn = document.getElementById('cart-btn');
+    btn.style.transform = 'scale(1.2)';
+    setTimeout(() => btn.style.transform = '', 200);
+  }
+  
+  function changeQty(itemId, sizeKey, delta) {
+    const idx = cart.findIndex(c => c.itemId === itemId && c.sizeKey === sizeKey);
+    if (idx === -1) return;
+    cart[idx].qty += delta;
+    if (cart[idx].qty <= 0) cart.splice(idx, 1);
+    updateCartBadge();
+    renderCartItems();
+  }
+  
+  // ============================================================
+  // CART SHEET
+  // ============================================================
+  function openCart() {
+    const existing = document.getElementById('cart-sheet');
+    if (existing) existing.remove();
+  
+    // منع الـ body من الـ scroll
+    document.body.style.overflow = 'hidden';
+  
+    const overlay = document.createElement('div');
+    overlay.className = 'sheet-overlay';
+    overlay.id = 'cart-sheet';
+    overlay.onclick = (e) => { if (e.target === overlay) closeCart(); };
+  
+    const box = document.createElement('div');
+    box.className = 'sheet-box';
+    box.id = 'cart-box';
+    box.innerHTML = `
+      <div class="sheet-handle"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px;">
+        <div class="sheet-title" style="padding:0;" id="cart-title">${currentLang==='ar'?'عربة الطلب 🛒':'Order Cart 🛒'}</div>
+        <button onclick="closeCart()" style="
+          width:32px;height:32px;border-radius:50%;border:1px solid var(--border);
+          background:var(--bg-item);color:var(--text-sub);font-size:18px;
+          cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+        ">✕</button>
+      </div>
+      <div class="sheet-scroll" id="cart-items"></div>
+      <div class="sheet-footer" id="cart-footer"></div>`;
+  
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    renderCartItems();
+  }
+  
+  function renderCartItems() {
+    const container = document.getElementById('cart-items');
+    const footer = document.getElementById('cart-footer');
+    if (!container || !footer) return;
+  
+    if (cart.length === 0) {
+      container.innerHTML = `<div class="empty-cart">
+        <div class="empty-icon">🛒</div>
+        <div>${currentLang==='ar'?'العربة فارغة':'Cart is empty'}</div>
+      </div>`;
+      footer.innerHTML = '';
+      return;
+    }
+  
+    container.innerHTML = cart.map((c) => {
+      const name = currentLang === 'ar' ? c.nameAr : c.nameEn;
+      const sizeLabel = SIZE_LABELS[c.sizeKey]?.[currentLang] ?? c.sizeKey;
+      const priceNum = parseFloat(c.price) || 0;
+      const lineTotal = priceNum > 0 ? (priceNum * c.qty) + (currentLang==='ar'?' ج':' LE') : '—';
+      return `<div class="cart-item">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${name}</div>
+          <div class="cart-item-size">${sizeLabel}</div>
+          <div class="cart-item-price">${lineTotal}</div>
+          <div class="qty-row">
+            <button class="qty-btn minus" onclick="changeQty('${c.itemId}','${c.sizeKey}',-1)">−</button>
+            <span class="qty-num">${c.qty}</span>
+            <button class="qty-btn" onclick="changeQty('${c.itemId}','${c.sizeKey}',1)">+</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  
+    const total = cart.reduce((s, c) => s + (parseFloat(c.price)||0) * c.qty, 0);
+    const totalStr = total > 0 ? total + (currentLang==='ar'?' ج':' LE') : '—';
+  
+    const hasWa = !!branchData?.whatsApp;
+  
+    // ===== الأزرار: لو في واتساب → الاتنين، لو مفيش → مطعم بس =====
   const btnsHtml = hasWa
-    ? `<div style="display:flex;gap:10px;margin-top:4px;">
-        <button class="send-btn" style="flex:1;" onclick="sendWhatsapp()">
-          <span>💬</span>
-          <span>${currentLang==='ar'?'واتساب':'WhatsApp'}</span>
-        </button>
-        <button class="send-btn" style="flex:1;background:linear-gradient(180deg,#30D158,#248A3D);box-shadow:0 4px 20px rgba(48,209,88,0.3);" onclick="sendToRestaurant()">
-          <span>🏪</span>
-          <span>${currentLang==='ar'?'إرسال للمطعم':'Send to Restaurant'}</span>
-        </button>
-      </div>`
-    : `<button class="send-btn" style="background:linear-gradient(180deg,#30D158,#248A3D);box-shadow:0 4px 20px rgba(48,209,88,0.3);" onclick="sendToRestaurant()">
+  ? `<div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="send-btn" style="flex:1;" onclick="sendWhatsapp()">
+        <span>💬</span>
+        <span>${currentLang==='ar'?'واتساب':'WhatsApp'}</span>
+      </button>
+      <!--
+      <button class="send-btn" style="flex:1;background:linear-gradient(180deg,#30D158,#248A3D);box-shadow:0 4px 20px rgba(48,209,88,0.3);" onclick="sendToRestaurant()">
         <span>🏪</span>
         <span>${currentLang==='ar'?'إرسال للمطعم':'Send to Restaurant'}</span>
-      </button>`;
-
-  footer.innerHTML = `
-    <div class="total-row">
-      <span>${currentLang==='ar'?'الإجمالي':'Total'}</span>
-      <span class="total-val">${totalStr}</span>
-    </div>
-    <label class="form-label">${currentLang==='ar'?'الاسم':'Name'} *</label>
-    <input class="form-input" id="order-name" placeholder="${currentLang==='ar'?'اسمك كامل':'Your full name'}" />
-    <label class="form-label">${currentLang==='ar'?'العنوان':'Address'} *</label>
-    <input class="form-input" id="order-address" placeholder="${currentLang==='ar'?'عنوان التوصيل':'Delivery address'}" />
-    <label class="form-label">${currentLang==='ar'?'رقم التواصل':'Phone'} *</label>
-    <input class="form-input" id="order-phone" type="tel" placeholder="${currentLang==='ar'?'رقم هاتفك':'Your phone number'}" />
-    ${btnsHtml}`;
-}
-
-// ============================================================
-// SEND ORDER
-// ============================================================
-function getOrderData() {
-  const name    = document.getElementById('order-name')?.value.trim();
-  const address = document.getElementById('order-address')?.value.trim();
-  const phone   = document.getElementById('order-phone')?.value.trim();
-  if (!name)    { alert(currentLang==='ar'?'من فضلك أدخل اسمك':'Please enter your name'); return null; }
-  if (!address) { alert(currentLang==='ar'?'من فضلك أدخل العنوان':'Please enter the address'); return null; }
-  if (!phone)   { alert(currentLang==='ar'?'من فضلك أدخل رقم التواصل':'Please enter your phone'); return null; }
-  if (cart.length === 0) { alert(currentLang==='ar'?'العربة فارغة!':'Cart is empty!'); return null; }
-  return { name, address, phone };
-}
-
-async function sendWhatsapp() {
-  const data = getOrderData();
-  if (!data) return;
-  const { name, address, phone } = data;
-
-  const lines = cart.map(c => {
-    const itemName = currentLang === 'ar' ? c.nameAr : c.nameEn;
-    const sizeLabel = SIZE_LABELS[c.sizeKey]?.[currentLang] ?? c.sizeKey;
-    const priceNum = parseFloat(c.price) || 0;
-    const lineTotal = priceNum > 0 ? ` — ${priceNum * c.qty} ${currentLang==='ar'?'ج':'LE'}` : '';
-    return `• ${itemName} (${sizeLabel}) × ${c.qty}${lineTotal}`;
-  }).join('\n');
-
-  const total = cart.reduce((s, c) => s + (parseFloat(c.price)||0) * c.qty, 0);
-  const totalLine = total > 0 ? `\n\n💰 ${currentLang==='ar'?'الإجمالي':'Total'}: ${total} ${currentLang==='ar'?'ج':'LE'}` : '';
-  const branchName = currentLang==='ar' ? (branchData.arabicName||'') : (branchData.englishName||'');
-
-  const msg = currentLang === 'ar'
-    ? `🛒 طلب جديد من ${branchName}\n\n${lines}${totalLine}\n\n👤 الاسم: ${name}\n📍 العنوان: ${address}\n📞 الهاتف: ${phone}`
-    : `🛒 New order from ${branchName}\n\n${lines}${totalLine}\n\n👤 Name: ${name}\n📍 Address: ${address}\n📞 Phone: ${phone}`;
-
-  const waNumber = branchData.whatsApp.replace(/[^0-9+]/g, '');
-  window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, '_blank');
-
-  cart = [];
-  updateCartBadge();
-  closeCart();
-}
-
-async function sendToRestaurant() {
-  const data = getOrderData();
-  if (!data) return;
-  const { name, address, phone } = data;
-
-  const btns = document.querySelectorAll('.send-btn');
-  btns.forEach(b => { b.disabled = true; });
-
-  try {
-    const res = await fetch('https://potatoo-eight.vercel.app/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        branchId: branchId,
-        customerName: name,
-        customerAddress: address,
-        customerPhone: phone,
-        items: cart.map(c => ({
-          nameAr: c.nameAr || c.nameEn,
-          nameEn: c.nameEn || c.nameAr,
-          sizeKey: c.sizeKey,
-          price: parseFloat(c.price) || 0,
-          qty: c.qty,
-        })),
-      }),
-    });
-    const json = await res.json();
-    if (!json.success) throw new Error();
-
+      </button>
+      -->
+    </div>`
+  : `<button class="send-btn" onclick="sendWhatsapp()">
+      <span>💬</span>
+      <span>${currentLang==='ar'?'واتساب':'WhatsApp'}</span>
+    </button>`;
+  
+    footer.innerHTML = `  
+      <div class="total-row">
+        <span>${currentLang==='ar'?'الإجمالي':'Total'}</span>
+        <span class="total-val">${totalStr}</span>
+      </div>
+      <label class="form-label">${currentLang==='ar'?'الاسم':'Name'} *</label>
+      <input class="form-input" id="order-name" placeholder="${currentLang==='ar'?'اسمك كامل':'Your full name'}" />
+      <label class="form-label">${currentLang==='ar'?'العنوان':'Address'} *</label>
+      <input class="form-input" id="order-address" placeholder="${currentLang==='ar'?'عنوان التوصيل':'Delivery address'}" />
+      <label class="form-label">${currentLang==='ar'?'رقم التواصل':'Phone'} *</label>
+      <input class="form-input" id="order-phone" type="tel" placeholder="${currentLang==='ar'?'رقم هاتفك':'Your phone number'}" />
+      ${btnsHtml}`;
+  }
+  
+  // ============================================================
+  // SEND ORDER
+  // ============================================================
+  function getOrderData() {
+    const name    = document.getElementById('order-name')?.value.trim();
+    const address = document.getElementById('order-address')?.value.trim();
+    const phone   = document.getElementById('order-phone')?.value.trim();
+    if (!name)    { alert(currentLang==='ar'?'من فضلك أدخل اسمك':'Please enter your name'); return null; }
+    if (!address) { alert(currentLang==='ar'?'من فضلك أدخل العنوان':'Please enter the address'); return null; }
+    if (!phone)   { alert(currentLang==='ar'?'من فضلك أدخل رقم التواصل':'Please enter your phone'); return null; }
+    if (cart.length === 0) { alert(currentLang==='ar'?'العربة فارغة!':'Cart is empty!'); return null; }
+    return { name, address, phone };
+  }
+  
+  async function sendWhatsapp() {
+    const data = getOrderData();
+    if (!data) return;
+    const { name, address, phone } = data;
+  
+    const lines = cart.map(c => {
+      const itemName = currentLang === 'ar' ? c.nameAr : c.nameEn;
+      const sizeLabel = SIZE_LABELS[c.sizeKey]?.[currentLang] ?? c.sizeKey;
+      const priceNum = parseFloat(c.price) || 0;
+      const lineTotal = priceNum > 0 ? ` — ${priceNum * c.qty} ${currentLang==='ar'?'ج':'LE'}` : '';
+      return `• ${itemName} (${sizeLabel}) × ${c.qty}${lineTotal}`;
+    }).join('\n');
+  
+    const total = cart.reduce((s, c) => s + (parseFloat(c.price)||0) * c.qty, 0);
+    const totalLine = total > 0 ? `\n\n💰 ${currentLang==='ar'?'الإجمالي':'Total'}: ${total} ${currentLang==='ar'?'ج':'LE'}` : '';
+    const branchName = currentLang==='ar' ? (branchData.arabicName||'') : (branchData.englishName||'');
+  
+    const msg = currentLang === 'ar'
+      ? `🛒 طلب جديد من ${branchName}\n\n${lines}${totalLine}\n\n👤 الاسم: ${name}\n📍 العنوان: ${address}\n📞 الهاتف: ${phone}`
+      : `🛒 New order from ${branchName}\n\n${lines}${totalLine}\n\n👤 Name: ${name}\n📍 Address: ${address}\n📞 Phone: ${phone}`;
+  
+    const waNumber = branchData.whatsApp.replace(/[^0-9+]/g, '');
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, '_blank');
+  
     cart = [];
     updateCartBadge();
     closeCart();
-    showToast(currentLang==='ar'?'✅ تم إرسال طلبك للمطعم!':'✅ Order sent to restaurant!');
-  } catch (_) {
-    btns.forEach(b => { b.disabled = false; });
-    alert(currentLang==='ar'?'فشل الإرسال، حاول مرة أخرى':'Failed to send, try again');
   }
-}
-
-// ============================================================
-// PHONE SHEET
-// ============================================================
-function showPhoneSheet(numbers) {
-  const existing = document.getElementById('phone-sheet');
-  if (existing) existing.remove();
-  const sheet = document.createElement('div');
-  sheet.id = 'phone-sheet';
-  sheet.className = 'sheet-overlay';
-  const title = currentLang === 'ar' ? 'اختر رقم للاتصال' : 'Choose a number to call';
-  const box = document.createElement('div');
-  box.style.cssText = 'background:#1A1A1A;border-radius:24px 24px 0 0;padding:20px 16px 32px;';
-  box.innerHTML = `
-    <div style="width:40px;height:4px;background:linear-gradient(90deg,#FFCC44,#E08A00);border-radius:2px;margin:0 auto 16px;"></div>
-    <div style="font-size:17px;font-weight:900;margin-bottom:14px;background:linear-gradient(180deg,#FFCC44,#E08A00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${title}</div>
-    ${numbers.map(n => `
-      <div onclick="window.location.href='tel:${n.replace(/[^0-9+]/g,'')}'"
-        style="display:flex;align-items:center;gap:12px;background:#2B2B2B;border:1px solid #3A3A3A;border-radius:14px;padding:12px 14px;margin-bottom:10px;cursor:pointer;">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(180deg,#FFCC44,#E08A00);display:flex;align-items:center;justify-content:center;font-size:18px;">📞</div>
-        <span style="font-weight:700;font-size:15px;">${n}</span>
-      </div>`).join('')}`;
-  sheet.appendChild(box);
-  sheet.onclick = (e) => { if (e.target === sheet) sheet.remove(); };
-  document.body.appendChild(sheet);
-}
-
-// ============================================================
-// CLOSE CART
-// ============================================================
-function closeCart() {
-  document.getElementById('cart-sheet')?.remove();
-  document.body.style.overflow = '';
-}
-
-// ============================================================
-// OPEN APP
-// ============================================================
-function openApp() { window.location.href = 'potatoo://menu/' + branchId; }
-
-// ============================================================
-// LANG SWITCH
-// ============================================================
-function setLang(lang) {
-  currentLang = lang;
-  document.documentElement.lang = lang;
-  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  document.getElementById('btn-ar').classList.toggle('active', lang === 'ar');
-  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
-  if (lang === 'ar') {
-    document.getElementById('banner-title').textContent = 'افتح في التطبيق';
-    document.getElementById('banner-sub').textContent = 'تجربة أفضل مع تطبيق Potatoo';
-  } else {
-    document.getElementById('banner-title').textContent = 'Open in App';
-    document.getElementById('banner-sub').textContent = 'Better experience with Potatoo app';
+  
+  async function sendToRestaurant() {
+    const data = getOrderData();
+    if (!data) return;
+    const { name, address, phone } = data;
+  
+    const btns = document.querySelectorAll('.send-btn');
+    btns.forEach(b => { b.disabled = true; });
+  
+    try {
+      const res = await fetch('https://potatoo-eight.vercel.app/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchId: branchId,
+          customerName: name,
+          customerAddress: address,
+          customerPhone: phone,
+          items: cart.map(c => ({
+            nameAr: c.nameAr || c.nameEn,
+            nameEn: c.nameEn || c.nameAr,
+            sizeKey: c.sizeKey,
+            price: parseFloat(c.price) || 0,
+            qty: c.qty,
+          })),
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error();
+  
+      cart = [];
+      updateCartBadge();
+      closeCart();
+      showToast(currentLang==='ar'?'✅ تم إرسال طلبك للمطعم!':'✅ Order sent to restaurant!');
+    } catch (_) {
+      btns.forEach(b => { b.disabled = false; });
+      alert(currentLang==='ar'?'فشل الإرسال، حاول مرة أخرى':'Failed to send, try again');
+    }
   }
-  if (branchData) { renderHeader(); renderTabs(); renderContent(); renderBottomBar(); }
-}
-
-// ============================================================
-// SCROLL
-// ============================================================
-let scrollObserver = null;
-function setupScrollObserver(count) {
-  if (scrollObserver) scrollObserver.disconnect();
-  const tabsH = document.getElementById('tabs-wrapper')?.offsetHeight || 60;
-  scrollObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) setActiveTab(parseInt(entry.target.id.replace('section-','')));
-    });
-  }, { rootMargin: `-${tabsH+10}px 0px -60% 0px`, threshold: 0 });
-  for (let i = 0; i < count; i++) {
-    const el = document.getElementById('section-' + i);
-    if (el) scrollObserver.observe(el);
+  
+  // ============================================================
+  // PHONE SHEET
+  // ============================================================
+  function showPhoneSheet(numbers) {
+    const existing = document.getElementById('phone-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'phone-sheet';
+    sheet.className = 'sheet-overlay';
+    const title = currentLang === 'ar' ? 'اختر رقم للاتصال' : 'Choose a number to call';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:#1A1A1A;border-radius:24px 24px 0 0;padding:20px 16px 32px;';
+    box.innerHTML = `
+      <div style="width:40px;height:4px;background:linear-gradient(90deg,#FFCC44,#E08A00);border-radius:2px;margin:0 auto 16px;"></div>
+      <div style="font-size:17px;font-weight:900;margin-bottom:14px;background:linear-gradient(180deg,#FFCC44,#E08A00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${title}</div>
+      ${numbers.map(n => `
+        <div onclick="window.location.href='tel:${n.replace(/[^0-9+]/g,'')}'"
+          style="display:flex;align-items:center;gap:12px;background:#2B2B2B;border:1px solid #3A3A3A;border-radius:14px;padding:12px 14px;margin-bottom:10px;cursor:pointer;">
+          <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(180deg,#FFCC44,#E08A00);display:flex;align-items:center;justify-content:center;font-size:18px;">📞</div>
+          <span style="font-weight:700;font-size:15px;">${n}</span>
+        </div>`).join('')}`;
+    sheet.appendChild(box);
+    sheet.onclick = (e) => { if (e.target === sheet) sheet.remove(); };
+    document.body.appendChild(sheet);
   }
-}
-function scrollToSection(index) {
-  const el = document.getElementById('section-' + index);
-  if (!el) return;
-  const tabsH = document.getElementById('tabs-wrapper').offsetHeight;
-  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - tabsH - 6, behavior: 'smooth' });
-  setActiveTab(index);
-}
-function setActiveTab(index) {
-  document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
-  const active = document.querySelector(`.tab-btn[data-index="${index}"]`);
-  if (active) active.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
-}
-
-// ============================================================
-// HELPERS
-// ============================================================
-function hideLoader() {
-  const loader = document.getElementById('loader');
-  loader.classList.add('hide');
-  setTimeout(() => loader.style.display = 'none', 400);
-}
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.textContent = msg;
-  t.style.cssText = `
-    position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
-    background:#1A1A1A; border:1px solid #3A3A3A; border-radius:14px;
-    padding:12px 20px; font-size:14px; font-weight:700; color:#fff;
-    z-index:9999; white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,0.5);
-    animation:toastIn 0.3s ease;
-  `;
-  document.head.insertAdjacentHTML('beforeend', `<style>@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px);}to{opacity:1;transform:translate(-50%,0);}}</style>`);
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
-}
-function showError(title, msg) {
-  hideLoader();
-  document.getElementById('err-title').textContent = title;
-  document.getElementById('err-msg').textContent = msg;
-  document.getElementById('error-state').style.display = 'flex';
-}
-</script>
-</body>
-</html>
+  
+  // ============================================================
+  // CLOSE CART
+  // ============================================================
+  function closeCart() {
+    document.getElementById('cart-sheet')?.remove();
+    document.body.style.overflow = '';
+  }
+  
+  // ============================================================
+  // OPEN APP
+  // ============================================================
+  function openApp() { window.location.href = 'potatoo://menu/' + branchId; }
+  
+  // ============================================================
+  // LANG SWITCH
+  // ============================================================
+  function setLang(lang) {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.getElementById('btn-ar').classList.toggle('active', lang === 'ar');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    if (lang === 'ar') {
+      document.getElementById('banner-title').textContent = 'افتح في التطبيق';
+      document.getElementById('banner-sub').textContent = 'تجربة أفضل مع تطبيق Potatoo';
+    } else {
+      document.getElementById('banner-title').textContent = 'Open in App';
+      document.getElementById('banner-sub').textContent = 'Better experience with Potatoo app';
+    }
+    if (branchData) { renderHeader(); renderTabs(); renderContent(); renderBottomBar(); }
+  }
+  
+  // ============================================================
+  // SCROLL
+  // ============================================================
+  let scrollObserver = null;
+  function setupScrollObserver(count) {
+    if (scrollObserver) scrollObserver.disconnect();
+    const tabsH = document.getElementById('tabs-wrapper')?.offsetHeight || 60;
+    scrollObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) setActiveTab(parseInt(entry.target.id.replace('section-','')));
+      });
+    }, { rootMargin: `-${tabsH+10}px 0px -60% 0px`, threshold: 0 });
+    for (let i = 0; i < count; i++) {
+      const el = document.getElementById('section-' + i);
+      if (el) scrollObserver.observe(el);
+    }
+  }
+  function scrollToSection(index) {
+    const el = document.getElementById('section-' + index);
+    if (!el) return;
+    const tabsH = document.getElementById('tabs-wrapper').offsetHeight;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - tabsH - 6, behavior: 'smooth' });
+    setActiveTab(index);
+  }
+  function setActiveTab(index) {
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+    const active = document.querySelector(`.tab-btn[data-index="${index}"]`);
+    if (active) active.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
+  }
+  
+  // ============================================================
+  // HELPERS
+  // ============================================================
+  function hideLoader() {
+    const loader = document.getElementById('loader');
+    loader.classList.add('hide');
+    setTimeout(() => loader.style.display = 'none', 400);
+  }
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = `
+      position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+      background:#1A1A1A; border:1px solid #3A3A3A; border-radius:14px;
+      padding:12px 20px; font-size:14px; font-weight:700; color:#fff;
+      z-index:9999; white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,0.5);
+      animation:toastIn 0.3s ease;
+    `;
+    document.head.insertAdjacentHTML('beforeend', `<style>@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px);}to{opacity:1;transform:translate(-50%,0);}}</style>`);
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+  function showError(title, msg) {
+    hideLoader();
+    document.getElementById('err-title').textContent = title;
+    document.getElementById('err-msg').textContent = msg;
+    document.getElementById('error-state').style.display = 'flex';
+  }
+  </script>
+  </body>
+  </html>
