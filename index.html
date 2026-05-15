@@ -439,7 +439,9 @@ function renderPage() {
   renderContent();
   renderBottomBar();
   document.getElementById('app-banner').style.display = 'flex';
+ if (branchData.whatsApp) {
   document.getElementById('cart-btn').style.display = 'flex';
+}
   document.getElementById('apk-btn').style.display = 'flex';
 }
 
@@ -532,8 +534,8 @@ function buildItemCard(item) {
   let inlineAddHtml = '';
   let sizeSelectInline = '';
 
-  if (sizes.length > 0) {
-    const itemId = item._id || item.id || name;
+ if (sizes.length > 0 && branchData?.whatsApp) {
+  const itemId = item._id || item.id || name;
 
     if (sizes.length === 1) {
       const s = sizes[0];
